@@ -2,7 +2,6 @@
 version: "2.1"
 services:
   jellyfin:
-  jellyfin:
     image: ghcr.io/linuxserver/jellyfin
     container_name: jellyfin
     environment:
