@@ -4,7 +4,7 @@ BOT:
   # Admin telegram account ID or comma separated IDs
   SUPER_USER: "syno_ds418_arm_transmission_bot"
   # Your family and friends telegram account ID(s)
-  ALLOWED_USERS: "@esteejane"
+  ALLOWED_USERS: "@muzaparoff"
 
   # Log file and log level configuration
   LOG_FILE: logs/torrentino.log
