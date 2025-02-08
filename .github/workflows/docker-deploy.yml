@@ -37,19 +37,20 @@ jobs:
           key: ${{ secrets.VULTR_SSH_KEY }}
           port: ${{ secrets.VULTR_SSH_PORT || '22' }}
           script: |
-            # Pull the latest image from Docker Hub
+            # Create minimal config directory for logs
+            mkdir -p /root/transmission-telegram-bot/logs
+            
+            # Pull and run the container
             docker pull muzaparoff/transmission-telegram-bot:latest
-            # Stop and remove the existing container if it exists
             docker stop transmission-telegram-bot || true
             docker rm transmission-telegram-bot || true
-            # Run the new container in detached mode
             docker run -d --restart unless-stopped --name transmission-telegram-bot \
-                      -v /root/transmission-telegram-bot/torrentino.yaml:/app/torrentino.yaml \
                       -v /root/transmission-telegram-bot/logs:/app/logs \
                       -e BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
                       -e TRANSMISSION_HOST=${{ secrets.TRANSMISSION_HOST }} \
                       -e TRANSMISSION_PORT=${{ secrets.TRANSMISSION_PORT }} \
                       -e TRANSMISSION_USER=${{ secrets.TRANSMISSION_USER }} \
                       -e TRANSMISSION_PASSWORD=${{ secrets.TRANSMISSION_PASSWORD }} \
+                      -e DOWNLOAD_DIRS='{"Action":"/volume1/plex/Action","Classic":"/volume1/plex/Classic","Comedy":"/volume1/plex/Comedy","Comics":"/volume1/plex/Comics","Drama":"/volume1/plex/Drama","Horror":"/volume1/plex/Horror&Thriller","Kids":"/volume1/plex/Kids","TVShows":"/volume1/plex/TV-Shows","KidsShows":"/volume1/plex/Animated-TV-Shows","Romantic":"/volume1/plex/Romantic"}' \
                       muzaparoff/transmission-telegram-bot:latest
                       
