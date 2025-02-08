@@ -1,28 +1,24 @@
-from requests import get
+import requests
 from bs4 import BeautifulSoup
-import logging
 
 class SearchEZTV:
-    TRACKER_URL="https://eztv.re"
-    TRACKER_SEARCH_URL_TPL="/search/"
+    BASE_URL = "https://eztv.io"
+    SEARCH_URL_TPL = "/search/{}"
 
-    def search(self,search_string):    
-        logger = logging.getLogger(self.__class__.__name__)
-        """Search data on the web"""
-        self.POSTS=[]
-        x=self.TRACKER_URL+self.TRACKER_SEARCH_URL_TPL+search_string
-        _data=BeautifulSoup(get(x).content, 'lxml').select('table.forum_header_border > tr.forum_header_border')
-        logger.debug(_data)
-        for row in _data:
-            _cols=row.select('td')
-            TITLE=_cols[1].text
-            INFO=_cols[1].select('a')[0].get('href')
-            DL=_cols[2].select('a')[0].get('href')
-            SIZE=_cols[3].text
-            DATE=_cols[4].text
+    def search(self, search_string):    
+        posts = []
+        search_url = self.BASE_URL + self.SEARCH_URL_TPL.format(search_string)
+        data = BeautifulSoup(requests.get(search_url).content, 'html.parser').select('table.forum_header_border > tr.forum_header_border')
+        
+        for row in data:
+            cols = row.select('td')
+            title = cols[1].text.replace('\n', '').strip()
+            info = "{}/forum/{}".format(self.BASE_URL, cols[1].select('a')[0]['href'])
+            dl = "{}/forum/{}".format(self.BASE_URL, cols[2].select('a')[0]['href'])
+            size = cols[3].text
+            date = cols[4].text
                     
-            logger.debug("COL Title:"+TITLE+" L:"+str(INFO)+" DL:"+str(DL)+" S:"+str(SIZE)+" D:"+str(DATE))
-            self.POSTS.append(
-                        {'title': TITLE.replace(r'<',''), 'info':"{0}/forum/{1}".format(self.TRACKER_URL,INFO), 'dl': "{0}/forum/{1}".format(self.TRACKER_URL,DL), 'size':SIZE,'date': DATE }
-                            )
+            posts.append({'title': title, 'info': info, 'dl': dl, 'size': size, 'date': date})
 
+        for post in posts:
+            yield post

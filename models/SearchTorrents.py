@@ -33,12 +33,21 @@ class SearchTorrents:
             logger.info("Found cached search results for: {0}".format(search_string))
             self.POSTS=self.CACHE[srch_hash]
          else:
-
             posts = []
             for _class in self.CLASSES:
                 TRACKER=self.CLASSES[_class]()
                 TRACKER.search(search_string)
-                posts.extend(TRACKER.POSTS)
+                try:
+                    # Try both uppercase and lowercase attributes
+                    if hasattr(TRACKER, 'POSTS'):
+                        posts.extend(TRACKER.POSTS)
+                    elif hasattr(TRACKER, 'posts'):
+                        posts.extend(TRACKER.posts)
+                    else:
+                        logger.error(f"Tracker {_class} doesn't have posts/POSTS attribute")
+                except AttributeError as e:
+                    logger.error(f"Error accessing posts for tracker {_class}: {str(e)}")
+                    continue
             try:
                 sorted_list = sorted(posts, key=lambda d: d['size'], reverse=True)
                 for el in sorted_list:

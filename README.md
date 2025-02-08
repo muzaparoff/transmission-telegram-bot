@@ -5,6 +5,7 @@ Telegram bot for Searching torrents and passing to Transmission torrent server.
 Supported trackers:
 * http://nnmclub.to/
 * http://rutor.info 
+* https://rutracker.org
 * https://eztv.re/
 * https://kat.sx/
 

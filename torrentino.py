@@ -15,8 +15,12 @@ import copy
 import tempfile
 import random
 import string
+import ssl
+import certifi
+import requests
 from models.TransmissionClient import TransmissionClient
 from models.SearchTorrents import SearchTorrents
+from transmission_rpc.error import TransmissionError  # Added import for TransmissionError
 
 from lib.func import restricted, \
                      trans, get_config, get_logger, \
@@ -214,29 +218,49 @@ def getKeyboard(context, _page=1):
 
 @restricted
 def processUserKey(update, context):
-    logging.debug(update)
     query = update.callback_query
-    # CallbackQueries need to be answered, even if no notification to the user is needed
-    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
-    query.answer()
-    if context.user_data['torrent']['type'] == 'torrent':
-       query.edit_message_text(text=trans('FILE_WILL_BE_DOWNLOADED', 
-                                          query.from_user.language_code).format(context.user_data['torrent']['file_name'],
-                                                                                str(query.data)))
-       _file = context.bot.getFile(context.user_data['torrent']['file_id'])
-       _file.download(tempfile.gettempdir()+os.path.sep+context.user_data['torrent']['file_name'])
-       logging.debug("Torrent file {0} was downloaded into temporal directpry {1}".format(context.user_data['torrent']['file_id'],tempfile.gettempdir()+os.path.sep+context.user_data['torrent']['file_name']))
-       with open(tempfile.gettempdir()+os.path.sep+context.user_data['torrent']['file_name'], 'rb') as f:
-           TORRENT_CLIENT.add_torrent(f,download_dir=query.data)
-
-       logging.info("File {0} will be placed into {1}".format(context.user_data['torrent']['file_name'],query.data))
-
-    elif context.user_data['torrent']['type'] in [ 'magnet', 'url' ]:
-       query.edit_message_text(text=trans("URL {0} will be downloaded into {1}.",query.from_user.language_code).format(context.user_data['torrent']['url'],query.data))
-       TORRENT_CLIENT.add_torrent(context.user_data['torrent']['url'],download_dir=query.data)
-       logging.info("URL {0} will be placed into {1}".format(context.user_data['torrent']['url'],query.data))
-    _t=threading.Thread(target=notifyOnDone, args=(context,query.message.chat.id,TORRENT_CLIENT.get_torrents()[-1].id,query.from_user.language_code))
-    _t.start()
+    try:
+        # Download torrent file first
+        torrent_url = context.user_data['torrent']['url']
+        download_dir = query.data
+        
+        # Handle magnet links differently
+        if torrent_url.startswith('magnet:'):
+            TORRENT_CLIENT.add_torrent(torrent_url, download_dir=download_dir)
+        else:
+            # Try to add torrent with fallback
+            try:
+                # First attempt: direct URL
+                TORRENT_CLIENT.add_torrent(torrent_url, download_dir=download_dir)
+            except TransmissionError as e:
+                # Second attempt: download torrent file first
+                response = requests.get(torrent_url)
+                if response.status_code == 200:
+                    with tempfile.NamedTemporaryFile(suffix='.torrent', delete=False) as tf:
+                        tf.write(response.content)
+                        torrent_path = tf.name
+                    
+                    # Add the downloaded torrent file
+                    TORRENT_CLIENT.add_torrent(torrent_path, download_dir=download_dir)
+                    
+                    # Clean up
+                    os.unlink(torrent_path)
+                else:
+                    raise Exception(f"Failed to download torrent file: {response.status_code}")
+        
+        context.bot.answer_callback_query(query.id)
+        context.bot.edit_message_text(
+            text=trans('URL {0} will be downloaded into {1}.', update.effective_user.language_code).format(torrent_url, download_dir),
+            chat_id=query.message.chat_id,
+            message_id=query.message.message_id
+        )
+    except Exception as e:
+        logging.error(f"Error adding torrent: {str(e)}")
+        context.bot.answer_callback_query(
+            query.id,
+            text=f"Error adding torrent: {str(e)}",
+            show_alert=True
+        )
 
 
 # @restricted
@@ -374,11 +398,21 @@ def welcomeNewUser(update, context):
 
 def main():
     """Start the bot."""
-    # Create the Updater and pass it your bot's token.
-    # Make sure to set use_context=True to use the new context based callbacks
-    # Post version 12 this will no longer be necessary
-    updater = Updater(BOT_TOKEN, use_context=True)
-    # Get the dispatcher to register handlers
+    # Create the Updater with custom request kwargs
+    updater = Updater(
+        BOT_TOKEN, 
+        use_context=True,
+        request_kwargs={
+            'read_timeout': 30,
+            'connect_timeout': 30,
+            'urllib3_proxy_kwargs': {
+                'assert_hostname': False,
+                'cert_reqs': 'CERT_NONE'
+            }
+        }
+    )
+    
+    # Rest of your main() function remains the same
     dp = updater.dispatcher
     # Admin commands
     dp.add_handler(MessageHandler(Filters.regex(r'^/help$'), help_command))

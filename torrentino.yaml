@@ -1,36 +1,29 @@
 BOT:
-  # TOKEN, Use BotFather to create new token
-  TOKEN: "5563996183:AAHcvBV5t8o9GUQQGyZ4vhaTQakZAsjVIs4"
-  # Admin telegram account ID or comma separated IDs
-  SUPER_USER: "syno_ds418_arm_transmission_bot"
-  # Your family and friends telegram account ID(s)
-  ALLOWED_USERS: "@muzaparoff"
-
-  # Log file and log level configuration
+  ALLOWED_USERS:
+    - 3516095
+    - '@muzaparoff'
+    - '@esteejane'
+    - 341890368
   LOG_FILE: logs/torrentino.log
   LOG_LEVEL: DEBUG
-
-TRANSMISSION:
-  # HOST, Transmission server host
-  HOST: 192.168.68.109
-  # PORT, Transmission server port
-  PORT: 9091
-  # USER, Transmission server user name
-  USER: admin 
-  # PASSWORD, Transmission server user password
-  PASSWORD: admin
-  # DELETE_DATA, delete torrent from transmission and remove data from file system
-  DELETE_DATA: false
-
+  SUPER_USER: 
+    - 3516095
+    - 341890368
+  TOKEN: 7245381885:AAFjpujJuUVKC26JyjNdQIFfsMSiIz7sj7s
 DIRECTORIES:
-  # List names and file system path to directories on Transmission server
-  # Example: multiple folders:
   Action: /volume1/plex/Action
-  Comedy: /volume1/plex/Comedy
   Classic: /volume1/plex/Classic
-  Horror: /volume1/plex/Horror&Thriller
+  Comedy: /volume1/plex/Comedy
   Comics: /volume1/plex/Comics
   Drama: /volume1/plex/Drama
-  TVShows: /volume1/plex/TV-Shows
+  Horror: /volume1/plex/Horror&Thriller
   Kids: /volume1/plex/Kids
-  
+  TVShows: /volume1/plex/TV-Shows
+  KidsShows: /volume1/plex/Animated-TV-Shows
+  Romantic: /volume1/plex/Romantic
+TRANSMISSION:
+  DELETE_DATA: false
+  HOST: muzaparoff.synology.me
+  PASSWORD: admin
+  PORT: 9091
+  USER: admin

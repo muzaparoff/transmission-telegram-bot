@@ -72,14 +72,17 @@ def restricted(func):
             logging.warn(f"Adding new super user {user_id}")
             CONFIG['BOT']['SUPER_USER'] = user_id
             save_config()
-        elif user_id not in CONFIG['BOT']['ALLOWED_USERS']:
-            context.bot.send_message(chat_id=user_id,
+        else:
+            # Convert user_id to string for comparison
+            allowed_users = [str(u) for u in CONFIG['BOT']['ALLOWED_USERS']]
+            if str(user_id) not in allowed_users and f"@{update.effective_user.username}" not in allowed_users:
+                context.bot.send_message(chat_id=user_id,
                                      text=trans('ACCESS_RESTRICTED', update.message.from_user.language_code),
                                      parse_mode=ParseMode.HTML,
                                      reply_markup=torrent_reply_markup)
-            logging.debug(update)
-            logging.error("Unauthorized access denied for {}.".format(user_id))
-            return
+                logging.debug(update)
+                logging.error("Unauthorized access denied for {}.".format(user_id))
+                return
         return func(update, context, *args, **kwargs)
     return wrapped
 
