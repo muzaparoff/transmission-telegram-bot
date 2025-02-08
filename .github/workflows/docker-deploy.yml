@@ -52,3 +52,4 @@ jobs:
                       -e TRANSMISSION_USER=${{ secrets.TRANSMISSION_USER }} \
                       -e TRANSMISSION_PASSWORD=${{ secrets.TRANSMISSION_PASSWORD }} \
                       muzaparoff/transmission-telegram-bot:latest
+                      
