@@ -12,6 +12,8 @@
 .output/
 #Extension App-file
 *.app
+# Add all folders files with extention log
+*.log
 #Rapid Application Development File
 rad.json
 #Translation Base-file
@@ -20,6 +22,12 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
+
+#Ignore files
+.gitignore
+
+#Ignore folders
+__pycache__/
 
 #venv folder
 venv/

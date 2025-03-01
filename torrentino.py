@@ -48,92 +48,59 @@ TORRENT_CLIENT = TransmissionClient(
 
 # Download directories
 # Transmission server needs write access to these directories
+# Remove this line from the top of the file (around line 40-45):
 reply_markup = InlineKeyboardMarkup( [[ InlineKeyboardButton(key.capitalize(), callback_data=config['DIRECTORIES'][key]) for key in config['DIRECTORIES'] ]] )
 
-# This variable is used to auth new users
-WELCOME_HASHES = []
+# Add this new function after the existing imports:
+def get_directory_keyboard():
+    """Create a dynamic keyboard markup with all available directories"""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(key.capitalize(), callback_data=config['DIRECTORIES'][key]) 
+         for key in sorted(config['DIRECTORIES'].keys())]
+    ])
 
-logging = get_logger(__file__)
-
-
-# Configure actions to work with torrent
-TORRENT_ACTIONS=[
-        "📁 Torrents",
-        "🔍 Search",
-        # "⏹ Stop All",
-        # "▶️ Start All"
-        ]
-torrent_reply_markup = ReplyKeyboardMarkup( [[KeyboardButton(text=str(key)) for key in TORRENT_ACTIONS]], resize_keyboard=True )
-
-
-# tracker_reply_markup = InlineKeyboardMarkup( [[InlineKeyboardButton(key, callback_data=key)] for key in SearchTorrents.CLASSES.keys()], resize_keyboard=True )
-
-tracker_list="|".join(SearchTorrents.CLASSES.keys())
-
-# Define a few command handlers. These usually take the two arguments update and
-# context. Error handlers also receive the raised TelegramError object in error.
-
-def help_command(update, context):
-    """Send a message when the command /help is issued."""
-    HELP = trans("HELP",update.message.from_user.language_code)
-    if update.message.chat.id == config['BOT']['SUPER_USER']:
-        HELP += "\n"+trans("HELP_ADMIN",update.message.from_user.language_code)
-    context.bot.send_message(chat_id=update.message.chat.id, text=HELP, parse_mode=ParseMode.HTML)
-
-
-def start(update, context):
-    """Echo the user message."""
-    update.message.reply_text(update.message.text)
-    logging.debug("echo: "+str(update))
-
-
-def notifyOnDone(context,user_id, torrent_id, user_lang="en_US"):
-    context.bot.send_message(chat_id=user_id,
-                             text=trans("I will notify you once download complete.",user_lang),
-                             parse_mode=ParseMode.HTML)
-    while "seeding" != TORRENT_CLIENT.status(torrent_id):
-        time.sleep(60)
-        logging.debug(f"Torrent {torrent_id} is in status {TORRENT_CLIENT.status(torrent_id)}")
-    _message = trans("Download completed", L_CODE=user_lang)+":\n"+TORRENT_CLIENT.info(int(torrent_id))
-    # truncate long messages 
-    _message = _message[:4000]+'..\n' if len(_message)>4000 else _message
-    _message = _message+"--------------------------\n" \
-            "[▶ /start_{0}] [⏹ /stop_{0}] [⏏ /delete_{0}]\n".format(torrent_id)
-    context.bot.send_message(chat_id=user_id, text=_message, parse_mode=ParseMode.HTML)
-
-
+# Then modify the askDownloadDirFile function:
 @restricted
 def askDownloadDirFile(update, context):
     """Download file"""
     logging.debug(update)
     logging.info(f"Searching for download file dir")
     if update.message.document.mime_type == 'application/x-bittorrent':
-        update.message.reply_text(trans('Please choose download folder for {}',update.message.from_user.language_code).format(update.message.document.file_name)+":", reply_markup=reply_markup)
+        update.message.reply_text(
+            trans('Please choose download folder for {}', update.message.from_user.language_code).format(
+                update.message.document.file_name
+            ) + ":",
+            reply_markup=get_directory_keyboard()
+        )
         context.user_data['torrent']={'type':'torrent','file_name':update.message.document.file_name,'file_id':update.message.document.file_id}
     else:
         update.message.reply_text("Error: Unsupported mime type: \n"+
                     f"File name: {update.message.document.file_name}"+
                     f"\nMime type: {update.message.document.mime_type}")
 
-
+# Also update askDownloadDirURL:
 @restricted
 def askDownloadDirURL(update, context):
-    """
-    Ask download directory for Magnet URL.
-    Next step: 
-    """
     logging.info(f"Downloading URL {update.message.text}")
-    update.message.reply_text(trans('CHOOSE_DOWNLOAD_DIR',
-                                    update.message.from_user.language_code).format(update.message.text)+":",
-                              reply_markup=reply_markup)
+    update.message.reply_text(
+        trans('CHOOSE_DOWNLOAD_DIR', update.message.from_user.language_code).format(
+            update.message.text
+        ) + ":",
+        reply_markup=get_directory_keyboard()
+    )
     context.user_data['torrent']={'type':'url', 'url':update.message.text}
 
-
+# And update askDownloadDirPageLink:
 @restricted
-def askDownloadDirPageLink(update,context):
+def askDownloadDirPageLink(update, context):
     logging.info(f"Downloading page link {update.message.text}")
     _id=int(update.message.text.split("_")[1])
-    update.message.reply_text(trans('CHOOSE_DOWNLOAD_DIR',update.message.from_user.language_code).format(context.user_data['posts'][_id]['dl'])+":", reply_markup=reply_markup)
+    update.message.reply_text(
+        trans('CHOOSE_DOWNLOAD_DIR', update.message.from_user.language_code).format(
+            context.user_data['posts'][_id]['dl']
+        ) + ":",
+        reply_markup=get_directory_keyboard()
+    )
     context.user_data['torrent']={'type':'url','url':context.user_data['posts'][_id]['dl']}
     logging.info("Added torrent URL to download list: {}".format(context.user_data['posts'][_id]['dl']))
 
